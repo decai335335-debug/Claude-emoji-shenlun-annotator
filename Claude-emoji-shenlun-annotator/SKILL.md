@@ -1,6 +1,6 @@
 ---
-name: Claude-emoji-shenlun-annotator
-description: 申论材料深度标注工具。基于《申论刷题第二期》20篇标注范本总结的统一标注规则，对申论给定资料进行要点提取、类型分类、加粗强调、emoji 语义标签、末尾汇总表生成。当用户提供申论材料原文、让你"标注申论""做申论标注""按范本标注""生成标注版"时使用。
+name: Clamoji-shenlun-annotator
+description: 申论材料深度标注工具。基于《申论刷题第二期》20篇标注范本总结的统一标注规则，对申论给定资料进行要点提取、类型分类、加粗强调、emoji 语义标签、末尾汇总表生成，并自动同步导出同名 PDF 到相同目录。当用户提供申论材料原文、让你"标注申论""做申论标注""按范本标注""生成标注版"时使用。
 ---
 
 # 申论深度标注 Skill
@@ -10,6 +10,29 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
 - 用户给出**申论原题（题干 + 给定资料）**，要求生成"标注版 Markdown"。
 - 用户要求按照《申论刷题第二期》20 天范本的格式继续标注新材料。
 - 用户要求从已有的非标注文本中提取采分点并按统一样式标注。
+
+## 一·五、执行前置检查（**强制，先于任何标注动作**）
+
+在动笔之前，**必须**判定输入是"**原料**"还是"**成品**"：
+
+1. **文件名检查**：若文件名含 `标注版`、`annotated`、`_emoji_`、`_v2` 等成品标识 → 高风险。
+2. **内容抽样检查**（扫描前 30 行即可判定）：
+   - 若正文中已出现 `` `【{emoji}...】` `` 反引号标签，
+   - 或已含 `## 📊 ...标注汇总` 表格，
+   - 或已有大量 `**...**` 加粗，
+   → **判定为已标注成品**。
+3. **判定动作**：
+   - ✅ 原始材料（无标签、无加粗、无汇总表）→ 正常执行第七节标注流程。
+   - ⚠️ 已标注成品 → **停下来**，不要自动"再标一遍"。向用户明确反馈：
+     > "该文件已是标注版，本 skill 需要**未标注的原始给定资料**作为输入。
+     > 请确认以下选项之一：
+     > (A) 提供原始真题给定资料纯文本；
+     > (B) 我帮你**剥离**现有标签/加粗得到原料后重标（会丢失原标注信息）；
+     > (C) 切换为 **review 模式**——仅校对和优化现有标注，不新增要点；
+     > (D) 对现有汇总表做 **answer-extraction**——直接基于标签生成答题要点稿。"
+   - 让用户选择后再继续。**严禁默认覆盖重写已标注文件** —— 那只是换皮，不是挖掘新采分点。
+
+**原则**：skill 是"从原料炼出采分点"，不是"把成品换个标签重排"。拿成品当原料 = 任务逻辑闭环失败。
 
 ## 二、文件整体结构（严格遵守）
 
@@ -108,6 +131,50 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
 
 **一句话原则**：**做法→🔧、问题→⚠️、数据→💯、背景→🌐、结论/观点→⭐、成效→🚀、概念→📖**。
 
+### 四·五、**丰富度要求（防止单调）** ⚠️ 重点
+
+仅靠 `⭐/🔧/⚠️/🌐` 四个裸标签会让整篇标注看起来**非常单调**。要学范本（如《政府企业合力治水》）,给每个 emoji **挂"角色/阶段/维度限定词"**,形成标签**变奏**。
+
+**必须做到**：每段若出现同类 emoji ≥ 2 次,第二次起**必须换限定词**,不得简单重复。
+
+#### 常用"二级限定词"词库（按 emoji 分组,直接抄用）
+
+- **🌐 背景类**：`Background` / `Policy background` / `Policy context` / `Tech background` / `Historical background` / `Scene` / `Industry background`
+- **⭐ 观点类**：`Core viewpoint` / `Core experience` / `Core concept` / `Core achievement` / `Core conclusion` / `Core method` / `Core strategy` / `Core value`
+- **🔧 做法类（按主体拆）**：
+  - 政府侧：`Government action` / `Government service` / `Policy tools` / `Regulatory innovation`
+  - 企业侧：`Enterprise action` / `Tech innovation` / `Work method` / `System architecture` / `Service innovation`
+  - 协同侧：`Cooperation mechanism` / `Cross-dept coordination` / `Diagnosis method` / `Construction model`
+- **⚠️ 问题类**：`Problem` / `Core problem` / `Core problem diagnosis` / `Challenge` / `Pain point` / `Risk`
+- **💯 数据类**：`Data` / `Key data` / `Time span` / `Milestone` / `Contrast data` / `Scale data` / `Achievement data`
+- **🚀 成效类**：`Effect` / `Achievement` / `Function effect` / `Contrast effect` / `Achievement promotion` / `Social effect` / `Economic effect`
+- **💡 理念类**：`Idea` / `Concept` / `Enterprise motivation` / `Enterprise thinking` / `Enterprise opportunity` / `Core concept` / `Key insight` / `Principle`
+- **📖 概念类**：`Concept` / `Definition` / `Term` / `New concept`
+- **🏆 目标类**：`Goal` / `Vision` / `Direction` / `Strategic positioning`
+
+#### 挂限定词的 3 种视角（帮助你选词）
+
+1. **主体视角**：政府 / 企业 / 群众 / 专家 / 第三方 → `Government action` vs `Enterprise action` vs `Public feedback`。
+2. **阶段视角**：发现问题 → 研讨 → 决策 → 执行 → 验收 → 推广 → `Enterprise thinking` → `Diagnosis method` → `Core experience` → `Achievement` → `Achievement promotion`。
+3. **维度视角**：技术 / 制度 / 资金 / 人才 / 协同 → `Tech innovation` / `System architecture` / `Cooperation mechanism` / `Policy tools`。
+
+#### 反例 → 正例
+
+❌ 单调版（你当前的风格）：
+```
+【🌐Background: ...】...【🌐Background: ...】...【⚠️Problem 1: ...】...【⚠️Problem 2: ...】...【⚠️Problem 2-1: ...】
+```
+
+✅ 变奏版（目标风格,学治水范本）：
+```
+【🌐Policy background: "五水共治"方针】【🔧Government action: 发布公告进行污染源排查】【💡Enterprise opportunity: 主动请缨，利用技术优势】
+【⭐Core experience: 政府购买服务，企业补充政府力量】【💯Key data: 32条河道】
+【🔧Work method: 实地蹲守、逐一排查】【💯Key data: 30多人、300多天、1万多个污染源】【🚀Achievement: 系统摸清污染源情况】
+【🔧Innovation: 主动研发城市排涝指挥控制系统】【🚀Effect: 实时掌握+预警推送+快速反应】【💯Key data: 两个月研发周期】
+```
+
+每个标签**换一个限定词**,标注层次立刻丰富。**永远不要连续两次用同一个裸"Background/Problem/Measure"** —— 必须换角度。
+
 ## 五、标注内容的选取标准
 
 对每一段材料，按以下顺序识别要点：
@@ -135,6 +202,7 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
 
 ## 七、标注工作流（你的执行步骤）
 
+0. **前置检查**（见第一·五节）：确认输入是原料而非成品；若是成品，停下询问用户。
 1. **读题干** → 判定文体（概括题/对策题/分析题/应用文/大作文），题干决定要点颗粒度。
 2. **分段处理**，每段：
    - (a) 通读识别主体、动作、数据、问题、成效；
@@ -143,7 +211,14 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
    - (d) 段末用 `---` 分隔。
 3. **不要改写正文**，只做"加粗 + 追加标签"两件事。引号内原话完整保留。
 4. 全文处理完毕后 → 生成末尾汇总表 + 一句话核心经验。
-5. 最终交付**完整 Markdown 文本**（不要用工具直接写文件，除非用户明确要求保存路径）。
+5. **写入 Markdown 文件**：覆盖或新建到指定路径（utf-8，保留原换行风格）。
+6. **同步生成 PDF**（本 skill 默认启用，除非用户明确说"只要 md"）：
+   - 目标路径：与 md **同目录、同文件名、扩展名改为 `.pdf`**。
+   - 例：`xxx/标注版_01_电商法影响.md` → `xxx/标注版_01_电商法影响.pdf`。
+   - 调用方式：优先 `Skill(anthropic-skills:convert-md-to-pdf)`；不可用时回退到 `pandoc` / `markdown-pdf` / `mdpdf` 等本地命令；仍不可用则报错提示用户安装。
+   - PDF 必须支持中文(含 emoji) —— 若默认字体渲染异常，改用 `Microsoft YaHei` / `Noto Sans CJK SC` / `SimSun` 等 CJK 字体。
+   - 完成后向用户同时返回 md 路径和 pdf 路径两条点击链接。
+7. 交付清单:md 文件路径 + pdf 文件路径 + 标注统计(⭐🔧⚠️💯🚀📖 各几条)。
 
 ## 八、常见错误与禁忌
 
@@ -155,6 +230,7 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
 - ❌ emoji 用错语义（用 🔧 标问题、用 ⚠️ 标数据）→ 参照第四节对照表。
 - ❌ 中英风格在同一文件里混乱切换。
 - ❌ 漏掉末尾 📊 汇总表。
+- ❌ **标签单调** —— 全篇只用 `⭐/🔧/⚠️/🌐` 四个裸词。必须按第四·五节挂"二级限定词",每段同 emoji 重复出现时**换一个限定词**（如第一个 🌐 用 `Policy background`、第二个用 `Tech background`）。自检:读完一篇,限定词种类应 ≥ 12 种,否则判定为单调,重做。
 
 ## 九、风格速查（Cheatsheet）
 
@@ -170,3 +246,16 @@ description: 申论材料深度标注工具。基于《申论刷题第二期》2
 ```
 
 记住：**标注是为了答题找点**。每一个 🔧 / ⚠️ / 💯 都应可直接摘抄进答案要点。
+
+## 十、PDF 导出实操细则
+
+- **触发时机**：md 写入成功之后**立即**执行,默认开启,无需询问。
+- **命名规则**：严格同名,`{basename}.md` → `{basename}.pdf`,不要加后缀、不要改目录。
+- **首选方案**:调用已安装的 `anthropic-skills:convert-md-to-pdf` skill,传入 md 路径即可。
+- **回退方案**(按优先级尝试):
+  1. `pandoc "xxx.md" -o "xxx.pdf" --pdf-engine=xelatex -V mainfont="Microsoft YaHei"`
+  2. `npx md-to-pdf "xxx.md"` (Node 环境)
+  3. `mdpdf "xxx.md" "xxx.pdf"`
+- **中文/emoji 故障排查**:若 PDF 中中文或 emoji 显示为方框 → 更换 CJK 字体 + emoji fallback 字体(如 `Segoe UI Emoji`、`Noto Color Emoji`)重试一次。
+- **失败处理**:导出失败不要静默吞掉,在最终回复里说明失败原因 + 建议命令,md 本体仍视为交付成功。
+- **用户可关闭**:若用户显式说"只要 md 不要 pdf"/"跳过 pdf",则省略步骤 6。
