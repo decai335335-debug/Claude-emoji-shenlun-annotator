@@ -1,5 +1,5 @@
 ---
-name: shenlun-annotator
+name: Claude-emoji-shenlun-annotator
 description: 申论材料深度标注工具。基于《申论刷题第二期》20篇标注范本总结的统一标注规则，对申论给定资料进行要点提取、类型分类、加粗强调、emoji 语义标签、末尾汇总表生成。当用户提供申论材料原文、让你"标注申论""做申论标注""按范本标注""生成标注版"时使用。
 ---
 
